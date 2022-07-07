@@ -4,6 +4,7 @@ const routes = require("../routes");
 const {
   notFoundHandler,
 } = require("../handlers/routeHandlers/notFoundHandler");
+const { parseJSON } = require("../helpers/utilities");
 
 const handler = {};
 handler.handleReqRes = (req, res) => {
@@ -33,15 +34,17 @@ handler.handleReqRes = (req, res) => {
   });
   req.on("end", () => {
     realData += decoder.end();
+    requestProperties.body = parseJSON(realData);
     chosenHandler(requestProperties, (statusCode, payLoad) => {
-        statusCode = typeof statusCode === "number" ? statusCode : 500;
-        payLoad = typeof payLoad === "object" ? payLoad : {};
-        const payLoadString = JSON.stringify(payLoad);
-        // return the final response
-          res.writeHead(statusCode);
-          res.end(payLoadString)
-      });
-    res.end("hello js pro");
+      statusCode = typeof statusCode === "number" ? statusCode : 500;
+      payLoad = typeof payLoad === "object" ? payLoad : {};
+      const payLoadString = JSON.stringify(payLoad);
+      // return the final response
+      res.setHeader("content-type", "application/json");
+      res.writeHead(statusCode);
+      res.end(payLoadString);
+      console.log("payload", payLoadString);
+    });
   });
 };
 
