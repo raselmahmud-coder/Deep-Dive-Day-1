@@ -25,7 +25,7 @@ handler._user.post = (requestProperties, callback) => {
     typeof requestProperties.body.password === "string" &&
     requestProperties.body.password.trim().length > 3
       ? requestProperties.body.password
-      : false; 
+      : false;
   const phone =
     typeof requestProperties.body.phone === "string" &&
     requestProperties.body.phone.length === 11
@@ -44,23 +44,23 @@ handler._user.post = (requestProperties, callback) => {
         const userObj = {
           firstName,
           lastName,
-          password:utilities.hash(password),
+          password: utilities.hash(password),
           phone,
           tosAgreement,
         };
         console.log("hey obj", userObj);
         // store user in the database
-            data.create("users", phone, userObj, (err) => {
+        data.create("users", phone, userObj, (err) => {
           if (!err) {
             callback(200, {
-              message:"you have added a user"
-            })
+              message: "you have added a user",
+            });
           } else {
             callback(500, {
-              error:"server side happen"
-            })
+              error: "server side happen",
+            });
           }
-        })
+        });
       } else {
         callback(500, {
           error: "it's already exist in the server",
@@ -73,7 +73,125 @@ handler._user.post = (requestProperties, callback) => {
     });
   }
 };
-handler._user.get = (requestProperties, callback) => {};
-handler._user.put = (requestProperties, callback) => {};
-handler._user.delete = (requestProperties, callback) => {};
+handler._user.get = (requestProperties, callback) => {
+  // check the phone number if valid then pass
+  const phone =
+    typeof requestProperties.queryObjectString.phone === "string" &&
+    requestProperties.queryObjectString.phone.trim().length === 11
+      ? requestProperties.queryObjectString.phone
+      : false;
+  if (phone) {
+    data.read("users", phone, (err, user) => {
+      const reqUser = utilities.parseJSON(user);
+      if (!err && reqUser) {
+        delete reqUser.password;
+        callback(200, reqUser);
+      } else {
+        callback(500, {
+          message: "it's been internal error",
+        });
+      }
+    });
+  } else {
+    callback(404, {
+      message: "not found",
+    });
+  }
+};
+handler._user.put = (requestProperties, callback) => {
+  // validation
+  const firstName =
+    typeof requestProperties.body.firstName === "string" &&
+    requestProperties.body.firstName.trim().length > 0
+      ? requestProperties.body.firstName
+      : false;
+  const lastName =
+    typeof requestProperties.body.lastName === "string" &&
+    requestProperties.body.lastName.trim().length > 0
+      ? requestProperties.body.lastName
+      : false;
+  const password =
+    typeof requestProperties.body.password === "string" &&
+    requestProperties.body.password.trim().length > 3
+      ? requestProperties.body.password
+      : false;
+  const phone =
+    typeof requestProperties.body.phone === "string" &&
+    requestProperties.body.phone.length === 11
+      ? requestProperties.body.phone
+      : false;
+  if (phone) {
+    if (firstName || lastName || password) {
+      data.read("users", phone, (err, uData) => {
+        const userData = { ...utilities.parseJSON(uData) };
+        if (!err && userData) {
+          if (firstName) {
+            userData.firstName = firstName;
+          }
+          if (lastName) {
+            userData.lastName = lastName;
+          }
+          if (password) {
+            userData.password = utilities.hash(password);
+          }
+
+          // update the data in the database
+          data.update("users", phone, userData, (err) => {
+            if (!err) {
+              callback(200, {
+                message: "successfully user was updated",
+              });
+            } else {
+              callback(500, {
+                message: "it's server side error happened",
+              });
+            }
+          });
+        } else {
+          callback(400, { message: "sorry we could not found" });
+        }
+      });
+    } else {
+      callback(400, { message: "invalid request" });
+    }
+  } else {
+    callback(400, {
+      message: "invalid number please try again later",
+    });
+  }
+};
+// @TODO USER AUTHENTICATION
+handler._user.delete = (requestProperties, callback) => {
+  const phone =
+    typeof requestProperties.queryObjectString.phone === "string" &&
+    requestProperties.queryObjectString.phone.trim().length === 11
+      ? requestProperties.queryObjectString.phone
+      : false;
+  if (phone) {
+    data.read("users", phone, (readErr, uData) => {
+      if (!readErr && uData) {
+        data.delete("users", phone, (err) => {
+          if (err) {
+            callback(500, {
+              message:"sorry it's internal error"
+            })
+          } else {
+            callback(200, {
+              message:"successfully user was deleted"
+            })
+          }
+        })
+      } else {
+        callback(404, {
+          message:"doesn't exist user or you haven't rights to delete user"
+        })
+        
+      }
+    })
+  } else {
+    callback(404, {
+      message:"not found any phone number"
+    })
+  }
+};
 module.exports = handler;
