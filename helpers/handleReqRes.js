@@ -34,7 +34,6 @@ handler.handleReqRes = (req, res) => {
   });
   req.on("end", () => {
     realData += decoder.end();
-    console.log("data"+ realData);
     if (realData) {
       requestProperties.body = parseJSON(realData);
     }
@@ -43,7 +42,7 @@ handler.handleReqRes = (req, res) => {
       payLoad = typeof payLoad === "object" ? payLoad : {};
       const payLoadString = JSON.stringify(payLoad);
       // return the final response
-      res.setHeader("content-type", "application/json");
+      // res.setHeader("content-type", "application/json");
       res.writeHead(statusCode);
       res.end(payLoadString);
       console.log("payload", payLoadString);

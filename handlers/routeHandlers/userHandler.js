@@ -1,6 +1,8 @@
 const data = require("../../lib/data");
 const utilities = require("../../helpers/utilities");
+const { _token } = require("./tokenHandlers");
 const handler = {};
+
 handler.userHandler = (requestProperties, callback) => {
   const acceptedMethod = ["post", "get", "put", "delete"];
   if (acceptedMethod.indexOf(requestProperties.method) > -1) {
@@ -81,14 +83,27 @@ handler._user.get = (requestProperties, callback) => {
       ? requestProperties.queryObjectString.phone
       : false;
   if (phone) {
-    data.read("users", phone, (err, user) => {
-      const reqUser = utilities.parseJSON(user);
-      if (!err && reqUser) {
-        delete reqUser.password;
-        callback(200, reqUser);
+    // verify the token
+    const token =
+      typeof requestProperties.headerObj.token === "string"
+        ? requestProperties.headerObj.token
+        : false;
+    _token.tokenVerify(token, phone, (isToken) => {
+      if (!isToken) {
+        callback(403, {
+          message: "Authentication failed",
+        });
       } else {
-        callback(500, {
-          message: "it's been internal error",
+        data.read("users", phone, (err, user) => {
+          const reqUser = utilities.parseJSON(user);
+          if (!err && reqUser) {
+            delete reqUser.password;
+            callback(200, reqUser);
+          } else {
+            callback(500, {
+              message: "it's been internal error",
+            });
+          }
         });
       }
     });
@@ -121,39 +136,52 @@ handler._user.put = (requestProperties, callback) => {
       ? requestProperties.body.phone
       : false;
   if (phone) {
-    if (firstName || lastName || password) {
-      data.read("users", phone, (err, uData) => {
-        const userData = { ...utilities.parseJSON(uData) };
-        if (!err && userData) {
-          if (firstName) {
-            userData.firstName = firstName;
-          }
-          if (lastName) {
-            userData.lastName = lastName;
-          }
-          if (password) {
-            userData.password = utilities.hash(password);
-          }
+    // verify the token
+    const token =
+      typeof requestProperties.headerObj.token === "string"
+        ? requestProperties.headerObj.token
+        : false;
+    _token.tokenVerify(token, phone, (isToken) => {
+      if (!isToken) {
+        callback(403, {
+          message: "Authentication failed",
+        });
+      } else {
+        if (firstName || lastName || password) {
+          data.read("users", phone, (err, uData) => {
+            const userData = { ...utilities.parseJSON(uData) };
+            if (!err && userData) {
+              if (firstName) {
+                userData.firstName = firstName;
+              }
+              if (lastName) {
+                userData.lastName = lastName;
+              }
+              if (password) {
+                userData.password = utilities.hash(password);
+              }
 
-          // update the data in the database
-          data.update("users", phone, userData, (err) => {
-            if (!err) {
-              callback(200, {
-                message: "successfully user was updated",
+              // update the data in the database
+              data.update("users", phone, userData, (err) => {
+                if (!err) {
+                  callback(200, {
+                    message: "successfully user was updated",
+                  });
+                } else {
+                  callback(500, {
+                    message: "it's server side error happened",
+                  });
+                }
               });
             } else {
-              callback(500, {
-                message: "it's server side error happened",
-              });
+              callback(400, { message: "sorry we could not found" });
             }
           });
         } else {
-          callback(400, { message: "sorry we could not found" });
+          callback(400, { message: "invalid request" });
         }
-      });
-    } else {
-      callback(400, { message: "invalid request" });
-    }
+      }
+    });
   } else {
     callback(400, {
       message: "invalid number please try again later",
@@ -168,30 +196,43 @@ handler._user.delete = (requestProperties, callback) => {
       ? requestProperties.queryObjectString.phone
       : false;
   if (phone) {
-    data.read("users", phone, (readErr, uData) => {
-      if (!readErr && uData) {
-        data.delete("users", phone, (err) => {
-          if (err) {
-            callback(500, {
-              message:"sorry it's internal error"
-            })
-          } else {
-            callback(200, {
-              message:"successfully user was deleted"
-            })
-          }
-        })
+    // verify the token
+    const token =
+      typeof requestProperties.headerObj.token === "string"
+        ? requestProperties.headerObj.token
+        : false;
+    _token.tokenVerify(token, phone, (isToken) => {
+      if (!isToken) {
+        callback(403, {
+          message: "Authentication failed",
+        });
       } else {
-        callback(404, {
-          message:"doesn't exist user or you haven't rights to delete user"
-        })
-        
+        data.read("users", phone, (readErr, uData) => {
+          if (!readErr && uData) {
+            data.delete("users", phone, (err) => {
+              if (!err) {
+                callback(500, {
+                  message: "sorry it's internal error",
+                });
+              } else {
+                callback(200, {
+                  message: "successfully user was deleted",
+                });
+              }
+            });
+          } else {
+            callback(404, {
+              message:
+                "doesn't exist user or you haven't rights to delete user",
+            });
+          }
+        });
       }
-    })
+    });
   } else {
     callback(404, {
-      message:"not found any phone number"
-    })
+      message: "not found any phone number",
+    });
   }
 };
 module.exports = handler;
