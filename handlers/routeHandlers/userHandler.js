@@ -6,13 +6,13 @@ const handler = {};
 handler.userHandler = (requestProperties, callback) => {
   const acceptedMethod = ["post", "get", "put", "delete"];
   if (acceptedMethod.indexOf(requestProperties.method) > -1) {
-    handler._user[requestProperties.method](requestProperties, callback);
+    handler._check[requestProperties.method](requestProperties, callback);
   } else {
     callback(405);
   }
 };
-handler._user = {};
-handler._user.post = (requestProperties, callback) => {
+handler._check = {};
+handler._check.post = (requestProperties, callback) => {
   const firstName =
     typeof requestProperties.body.firstName === "string" &&
     requestProperties.body.firstName.trim().length > 0
@@ -75,7 +75,7 @@ handler._user.post = (requestProperties, callback) => {
     });
   }
 };
-handler._user.get = (requestProperties, callback) => {
+handler._check.get = (requestProperties, callback) => {
   // check the phone number if valid then pass
   const phone =
     typeof requestProperties.queryObjectString.phone === "string" &&
@@ -113,7 +113,7 @@ handler._user.get = (requestProperties, callback) => {
     });
   }
 };
-handler._user.put = (requestProperties, callback) => {
+handler._check.put = (requestProperties, callback) => {
   // validation
   const firstName =
     typeof requestProperties.body.firstName === "string" &&
@@ -189,7 +189,7 @@ handler._user.put = (requestProperties, callback) => {
   }
 };
 // @TODO USER AUTHENTICATION
-handler._user.delete = (requestProperties, callback) => {
+handler._check.delete = (requestProperties, callback) => {
   const phone =
     typeof requestProperties.queryObjectString.phone === "string" &&
     requestProperties.queryObjectString.phone.trim().length === 11

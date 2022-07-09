@@ -8,7 +8,7 @@ utilities.parseJSON = (jsonString) => {
   try {
     output = JSON.parse(jsonString);
   } catch (err) {
-    console.log("error json parse",err);
+    console.log("error in the json parse",err);
     return false;
   }
   return output;
