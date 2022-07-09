@@ -203,9 +203,9 @@ handler._check.put = (requestProperties, callback) => {
           typeof requestProperties.headerObj.token === "string"
             ? requestProperties.headerObj.token
             : false;
-            _token.tokenVerify(token, checkObject.userPhone, (isToken) => {
-          console.log("check obj",token)
-          console.log("check obj",checkObject.userPhone)
+        _token.tokenVerify(token, checkObject.userPhone, (isToken) => {
+          console.log("check obj", token);
+          console.log("check obj", checkObject.userPhone);
           if (isToken) {
             if (protocol) {
               checkObject.protocol = protocol;
@@ -250,5 +250,88 @@ handler._check.put = (requestProperties, callback) => {
     });
   }
 };
-handler._check.delete = (requestProperties, callback) => {};
+handler._check.delete = (requestProperties, callback) => {
+  // check the phone number if valid then pass
+  const id =
+    typeof requestProperties.queryObjectString.id === "string" &&
+    requestProperties.queryObjectString.id.trim().length > 0
+      ? requestProperties.queryObjectString.id
+      : false;
+  if (id) {
+    data.read("checks", id, (err, checkData) => {
+      if (!err && checkData) {
+        // verify the token
+        const token =
+          typeof requestProperties.headerObj.token === "string"
+            ? requestProperties.headerObj.token
+            : false;
+        const phone = utilities.parseJSON(checkData).userPhone;
+        _token.tokenVerify(token, phone, (isToken) => {
+          if (isToken) {
+            //  delete a check data
+            data.delete("checks", id, (del) => {
+              // console.log("delete cb",del);
+              if (!del) {
+                data.read("users", phone, (err, uData) => {
+                  const userObject = utilities.parseJSON(uData);
+                  if (!err && uData) {
+                    const userChecks =
+                      typeof userObject.checks === "object" &&
+                      userObject.checks instanceof Array
+                        ? userObject.checks
+                        : [];
+                    // remove the checks id array from users list
+                    const checkPosition = userChecks.indexOf(id);
+                    if (checkPosition > -1) {
+                      userChecks.splice(checkPosition, 1);
+                      // update the user data after deleting check
+                      userObject.checks = userChecks;
+                      console.log("update user", phone, userObject);
+
+                      data.update("users", phone, userObject, (err) => {
+                        if (!err) {
+                          callback(200, {
+                            message:"successfully updated"
+                          })
+                        } else {
+                          callback(500, {
+                            message:"there was a internal problem"
+                          })
+                        }
+                      })
+                    } else {
+                      callback(404, {
+                        message:"position could not found"
+                      })
+                    }
+                  } else {
+                    callback(500, {
+                      message: "there was a server side error",
+                    });
+                  }
+                });
+              } else {
+                callback(500, {
+                  message: "there was a server side problem",
+                });
+              }
+            });
+          } else {
+            callback(403, {
+              message: "authentication failed",
+            });
+          }
+        });
+      } else {
+        callback(404, {
+          message: "not found any data",
+        });
+      }
+    });
+  } else {
+    callback(404, {
+      message: "not valid",
+    });
+  }
+};
 module.exports = handler;
