@@ -5,12 +5,18 @@ environment.staging = {
   envName: "staging",
   secretKey: "werputdgfdghttrmdfs;a",
   maxChecks: 5,
+  twilio: {
+    formPhone: "",
+  },
 };
 environment.production = {
   port: 5000,
   envName: "production",
   secretKey: "ahkerehfdwerputdgfdghttrmdfs;a",
   maxChecks: 5,
+  twilio: {
+    formPhone: "",
+  },
 };
 // determine which port was passed
 const currentEnvironment =
